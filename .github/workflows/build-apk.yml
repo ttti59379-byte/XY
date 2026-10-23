@@ -4,26 +4,26 @@ name: Build TouchX Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths:
-      - 'TouchX-Sensitivity-fixed-v0.1.1.zip'
-      - '.github/workflows/build-apk.yml'
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Unpack Android project
         run: |
-          test -f TouchX-Sensitivity-fixed-v0.1.1.zip
           unzip -q TouchX-Sensitivity-fixed-v0.1.1.zip
+          ls -la TouchX-Sensitivity
           test -f TouchX-Sensitivity/settings.gradle
           test -f TouchX-Sensitivity/app/build.gradle
 
@@ -34,24 +34,28 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install SDK packages
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Set up Gradle 8.9
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Compile debug APK
+      - name: Build APK
         working-directory: TouchX-Sensitivity
-        run: gradle --no-daemon :app:assembleDebug --stacktrace
+        run: |
+          gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Save APK as artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TouchX-Sensitivity-debug-APK
-          path: TouchX-Sensitivity/app/build/outputs/apk/debug/app-debug.apk
+          name: TouchX-Sensitivity-APK
+          path: TouchX-Sensitivity/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           
